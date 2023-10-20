@@ -443,7 +443,7 @@ model_field = Field(
 )
 
 max_tokens_field = Field(
-    default=16, ge=1, description="The maximum number of tokens to generate."
+    default=512, ge=1, description="The maximum number of tokens to generate."
 )
 
 temperature_field = Field(
