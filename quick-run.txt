@@ -1,1 +1,2 @@
 python -m llama_cpp.server --model ../../models/mistral-7b-openorca.Q5_K_M.gguf --n_gpu_layers 1 --port 8081 --chat_format chatml
+python -m llama_cpp.server --model ../../models/Merak-7B-v3-Mini-Orca-Indo.q5_K_M.gguf --n_gpu_layers 1 --port 8081 --chat_format vicuna
