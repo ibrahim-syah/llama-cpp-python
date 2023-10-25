@@ -443,7 +443,7 @@ model_field = Field(
 )
 
 max_tokens_field = Field(
-    default=16, ge=1, description="The maximum number of tokens to generate."
+    default=512, ge=1, description="The maximum number of tokens to generate."
 )
 
 temperature_field = Field(
@@ -664,7 +664,12 @@ async def create_completion(
 
 class CreateEmbeddingRequest(BaseModel):
     model: Optional[str] = model_field
-    input: Union[str, List[str]] = Field(description="The input to embed.")
+    input: Union[ # make this accept both string and integers
+        str,
+        List[str],
+        List[int],
+        List[List[int]],
+        ] = Field(description="The input to embed.")
     user: Optional[str] = Field(default=None)
 
     model_config = {
@@ -677,6 +682,8 @@ class CreateEmbeddingRequest(BaseModel):
         }
     }
 
+import tiktoken
+openai_tiktoken_encoding = tiktoken.get_encoding("cl100k_base")
 
 @router.post(
     "/v1/embeddings",
@@ -684,6 +691,23 @@ class CreateEmbeddingRequest(BaseModel):
 async def create_embedding(
     request: CreateEmbeddingRequest, llama: llama_cpp.Llama = Depends(get_llama)
 ):
+    # Force input to be in a list
+    if isinstance(request.input, list):
+        if isinstance(request.input[0], int): # a single list of int (token id(s))
+            list_input: List = [request.input]
+        else:
+            list_input: List = request.input # list of string or list of list of token id(s)
+    else:
+        list_input: List = [request.input] # a single string
+
+    # Force input to be a list of str (decode with tiktoken if it's from python langchain's OpenAIEmbedding)
+    request.input = (
+        [
+            openai_tiktoken_encoding.decode(tokenArr) for tokenArr in list_input 
+        ]
+        if isinstance(list_input[0], list) # is a list of array of token id(s)
+        else list_input  # This is a list of strings
+    )  # type: ignore
     return await run_in_threadpool(
         llama.create_embedding, **request.model_dump(exclude={"user"})
     )
